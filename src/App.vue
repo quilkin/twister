@@ -6,22 +6,16 @@ import { words2, words3, words4, sums3} from './assets/words'
 import GameOptions from './components/GameOptions.vue'
 import GameScore from './components/Timer.vue'
 import ModalAlert from './components/ModalAlert.vue';
+import ModalQuestion from './components/ModalQuestion.vue';
 import JSConfetti from 'js-confetti'
+import { is } from '@babel/types';
 
 let imageSize = 250
-//alert(window.innerWidth);
+
 if (window.innerWidth > 1000)
   imageSize = 3500;
   if (window.innerWidth < 400) // iphone se
   imageSize = 200;
-
-//const sampleWords2 =
-//  'of, to, in, it, be, as, so, we, he, by, or, do, if, me, my, up, an, go, no, us, am';
-//const sampleWords3 =
-//  'the, and, for, are, but, not, you, all, ear, any, can, had, her, was, fix, ace';
-//const sampleWords4 = 
-//   'that, with, have, this, will, your, from, they, know, want, been, good, much, some, time, very';
-
 
 
 let wordArray = [''];
@@ -29,15 +23,14 @@ let symbolArray = [['']];
 let symbolArrayCopy = [['']];
 let success = false;
 
-let increments : number[] | undefined[] = [undefined,undefined,undefined,undefined];
+let increments : number[] = [0,0,0,0];
 const currentMatch1 = ref(-1);
 const currentMatch2 = ref(-1);
 
 const score = ref(0);
-//const cardCount = ref(0);
-
 const gameStarted = ref(false);
-const isResultVisible = ref(false);
+const isAnswerInProgress = ref(false);
+const isQuestionVisible = ref(false);
 const resultWords = ref('');
 
 const options = ref() 
@@ -45,6 +38,7 @@ const jsConfetti = new JSConfetti()
 
 const changedOptions = ref(0);
 const centreEmoji = ref('😀');
+const ringRef = ref();
 
 let firstTime = true;
 onBeforeMount(() =>{
@@ -85,9 +79,10 @@ async function setRingImages()
 {
   if (options.value.imageType === imageTypes.additions)
     options.value.numberOfRings = 3;
-
+   
   
   let allWords;
+  increments  = [0,0,0,0];
 
   if (options.value.imageType === imageTypes.words) {
   
@@ -127,7 +122,7 @@ async function setRingImages()
   ++changedOptions.value;
 
 }
-function showResult() {
+function showSuccess() {
   jsConfetti.addConfetti({  emojis: [ '😎', '😇', '😮', '🙂','😃']})    
   gameStarted.value = false;
   // resultWords.value = `Success! ${cardCount.value} cards matched with a score of ${score.value}`;
@@ -135,36 +130,94 @@ function showResult() {
   // cardCount.value = 0;
 
 }
-function closeResult()
-{
-  isResultVisible.value = false;
-  jsConfetti.clearCanvas();
-  //decideInitialScore();
-}
-function failed() {
-  // show answer for a few seconds then stop game
-  options.value.showAnswer = true;
-  window.setTimeout( ()=>{
-    gameStarted.value = false;
-    resultWords.value = `Sorry 😢 you ran out of time!`;
-    isResultVisible.value = true;
 
-    options.value.showAnswer = false;
-    //decideInitialScore();
-    }, 4000)
+
+function twist(ring: number, incs: number) {
+  if (incs == 0)
+    return;
+  incs /= 10;
+  let timer = window.setInterval(()=> {
+    ringRef.value[ring].twist(true,false);
+    if (incs === undefined ||--incs <= 0) {
+      window.clearTimeout(timer);
+    }
+  },600);
 }
+
+let incs = [0];
+function calcIncrementsReqd(ring : number) {
+//console.log(ring +': '+ incs[ring]);
+      if (incs[ring] !== 0) 
+      // e.g. if incs at 90, and there are 12 words in the game, need to do (120-90) twists to bring to zero
+        incs[ring] = options.value.numberOfWords * 10 - incs[ring];
+     // console.log(ring + 'a: '+ incs[ring]);
+
+}
+function showResult(giveup: boolean)
+{
+  isQuestionVisible.value = false;
+  
+  if (giveup) {
+      isAnswerInProgress.value = true;
+
+    // animate to bring all rings back to zero increments
+      incs = increments.slice();
+      console.log(incs);
+      for (let r=0; r < 4; r++) {
+        calcIncrementsReqd(r);
+      }
+      console.log(incs);
+      // console.log('3:'+ incs[3]);
+      // if (incs[3] !== 0) 
+      // // e.g. if incs at 90, and there are 12 words in the game, need to do (120-90) twists to bring to zero
+      //   incs[3] = options.value.numberOfWords * 10 - incs[3];
+      // console.log('3a:'+ incs[3]);
+      let twistTime = incs[3] * 70 + 10;
+      twist(3,incs[3]);
+      // twist each ring when ready
+      window.setTimeout(()=> {
+         //calcIncrementsReqd(2);
+          // console.log('2:'+ incs[2]);
+          // if (incs[2] !== 0) incs[2] = options.value.numberOfWords * 10 - incs[2];
+          // console.log('2a:'+ incs[2]);
+          let twistTime = incs[2] * 70 + 10;
+          twist(2,incs[2]);
+          window.setTimeout(()=> {
+           // calcIncrementsReqd(1);
+              // console.log('1:'+ incs[1]);
+              // if (incs[1] !== 0) incs[1] = options.value.numberOfWords * 10 - incs[1];
+              // console.log('1a:'+ incs[1]);
+              let twistTime = incs[1] * 70 + 10;
+              twist(1,incs[1]);
+              window.setTimeout(()=> {
+                //  calcIncrementsReqd(0);
+                  // console.log('0:'+ incs[0]);
+                  // if (incs[0] !== 0) incs[0] = options.value.numberOfWords * 10 - incs[0];
+                  // console.log('0a:'+ incs[0]);
+                  let twistTime = incs[0] * 70 + 10;
+                  twist(0,incs[0]);
+                  window.setTimeout(()=> {
+                      // all twists done
+                    // todo: highlight answer in some way
+                    gameStarted.value = false;
+                    isAnswerInProgress.value = false;
+                  },twistTime)
+              },twistTime)
+          },twistTime)
+      },twistTime)
+    }
+  }
+
 
 function checkAnswer() {
   if (success)
   {
     centreEmoji.value = '😀'
-    showResult();
+    showSuccess();
   }
   else {
     centreEmoji.value = '😥'
-
   }
-
 }
 
 
@@ -172,6 +225,10 @@ function startGame() {
   
   centreEmoji.value = '❓'
   gameStarted.value = true;
+  if (ringRef.value) 
+    for (let r=0; r<4; r++)
+       if (ringRef.value[r])
+          ringRef.value[r].newIncrements();
   if (!firstTime)
     setRingImages();
   firstTime = false;
@@ -204,6 +261,8 @@ function thickness(ring : number)
  * @param incs 
  */
 function checkIncrements(ring: number, incs: number) {
+  // if (isAnswerInProgress.value)
+  //   return;
   centreEmoji.value = '❓'
   if (options.value.imageType === imageTypes.additions) {
     checkIncrementsNums(ring, incs);
@@ -261,10 +320,17 @@ function checkIncrementsNums(ring: number, incs: number) {
 
 
 function setIncrements(ring: number) {
-  let startInc = randInteger(symbolArray.length)*10;
-  increments[ring] = startInc;
-  return startInc;
-}
+
+    if (isAnswerInProgress.value) {
+      return increments[ring];
+    }
+    let startInc = randInteger(symbolArray.length)*10;
+    increments[ring] = startInc;
+    console.log('start incs: ' + increments)
+
+    return startInc;
+  }
+
 </script>
 
 
@@ -278,6 +344,7 @@ function setIncrements(ring: number) {
               <div id="topCard">
                 <svg  :width="imageSize*2" :height="imageSize*2">
                   <PolyGraphic  v-for="n in numRings()"
+                    ref="ringRef"
                     :index = "changedOptions"
                     :started = "gameStarted"
                     :options = "options"
@@ -306,7 +373,10 @@ function setIncrements(ring: number) {
               </div>
             </v-col>
           </v-row>
-            <game-options v-if="!gameStarted"
+            <div v-if="gameStarted">
+              <v-btn @click="isQuestionVisible=true">Show Answer?</v-btn>
+            </div>
+            <game-options v-else
                 v-model = "options"
                 @change-images="setRingImages();"
                 @done-setup = "startGame"
@@ -315,9 +385,11 @@ function setIncrements(ring: number) {
 
         </v-responsive>
       </v-container>
-      <ModalAlert v-show="isResultVisible" @close-modal="closeResult()" >
-          <template v-slot:body>{{ resultWords }}</template>
-      </ModalAlert>
+      <ModalQuestion v-show="isQuestionVisible" @close-modal="showResult" >
+          <template v-slot:header>Give up and show the solution?</template>
+          <template v-slot:body>Are you sure?</template>
+          
+      </ModalQuestion>
     </v-main>
   </v-app>
 </template>

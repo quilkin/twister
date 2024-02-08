@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { onUpdated, onMounted, ref } from 'vue'
 import SegmentImage from './SegmentImage.vue'
 import MathSign from './mathSign.vue'
 import { type image, Options, imageTypes } from '../util'
 
-const emit = defineEmits(['clickImage','sendIncrement'])
+const emit = defineEmits(['clickImage','sendIncrement']);
+//defineExpose({ twist });
+defineExpose({ twist,newIncrements });
 
 const props =defineProps<{
   ring: number,
@@ -22,8 +24,23 @@ const props =defineProps<{
 const increment = ref(props.increments);
 
 onMounted(() =>{
+  increment.value = props.increments;
   console.log(props.letters);
+  console.log('onMounted 1: ring: ' + props.ring + ' incs: ' + props.increments)
+  console.log('onMounted 2: ring: ' + props.ring + ' incs: ' + increment.value)
 })
+
+onUpdated(() =>{
+  // increment.value = props.increments;
+  // console.log('onUpdated 1: ring: ' + props.ring + ' incs: ' + props.increments)
+  // console.log('onUpdated 2: ring: ' + props.ring + ' incs: ' + increment.value)
+})
+function newIncrements() {
+  increment.value = props.increments;
+  console.log('newIncrements 1: ring: ' + props.ring + ' incs: ' + props.increments)
+  console.log('newIncrements 2: ring: ' + props.ring + ' incs: ' + increment.value)
+}
+
 function submitImage(imageID : number)
 {
   // just pass up through to top level
@@ -49,15 +66,16 @@ function size() {
 
 function checkIncrements() {
 
+
   while (increment.value % 10 !== 0)
     ++increment.value;
 
   // ensure multiple rotations are taken care of
-  if (increment.value/10 > props.letters.length)
+  if (increment.value/10 >= props.letters.length)
     increment.value -= props.letters.length * 10;
   if (increment.value/10 < 0)
     increment.value += props.letters.length * 10;
-  console.log(props.ring + ' increments: ' + increment.value);
+  console.log('ring: ' + props.ring + ' incs: ' + increment.value)
 
   emit('sendIncrement',props.ring,increment.value);
 
@@ -70,30 +88,30 @@ function clickCircle(backwards : boolean)
   console.log('clicked: ' + backwards)
   if (props.started === false)
     return;
-  twist(backwards);
+  twist(backwards,true);
   return;
-  //console.log('clciks ' + clicks);
-  ++clicks;
-  if (clicks === 1) {
+  // //console.log('clciks ' + clicks);
+  // ++clicks;
+  // if (clicks === 1) {
         
-      clickTimer = window.setTimeout(function() {
-        twist(true);  //perform single-click action 
+  //     clickTimer = window.setTimeout(function() {
+  //       twist(true);  //perform single-click action 
      
-      clicks = 0;    //after action performed, reset counter
+  //     clicks = 0;    //after action performed, reset counter
 
-    }, 200);
-  }
-  else {
-      clearTimeout(clickTimer);    //prevent single-click action
-      twist(false);  //perform double-click action
-      clicks = 0;   //after action performed, reset counter
-  }
+  //   }, 200);
+  // }
+  // else {
+  //     clearTimeout(clickTimer);    //prevent single-click action
+  //     twist(false,true);  //perform double-click action
+  //     clicks = 0;   //after action performed, reset counter
+  // }
 }
 
-function twist(backwards : boolean) {
+function twist(backwards : boolean, bounce: boolean) {
   //console.log('twist' + backwards);
  // animate the angle of letter placement 10 times, to bring next letter into line
- let count = 11;
+ let count = bounce? 11:10;
  let timer = window.setInterval(()=> {
     if (backwards)
       --increment.value;
@@ -101,18 +119,22 @@ function twist(backwards : boolean) {
       ++increment.value;
     if (--count <= 0) {
       window.clearTimeout(timer);
-      window.setTimeout(()=> {
-        // bounce back one tenth
-        if (backwards)
-          ++increment.value;
-        else 
-          --increment.value;
+      if (bounce) {
+        window.setTimeout(()=> {
+          // bounce back one tenth
+          if (backwards)
+            ++increment.value;
+          else 
+            --increment.value;
+          checkIncrements();
+        },50)
+      }
+      else {
         checkIncrements();
 
-
-      },50)
+      }
     }
- },50)
+  },50)
 }
 </script>
 
