@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted , onBeforeUnmount, onUpdated, ref} from 'vue'
-import {  randInteger,type image , Options, imageTypes} from '../util'
+import {  randInteger,type image , Options, valueToPoint} from '../util'
 
 const emit = defineEmits(['clickImage'])
 
@@ -12,8 +12,6 @@ const props = defineProps<{
   increment: number;
   index: number,
   segments: number,
-    // is this the correct image to click?
-  answer: boolean;
   options : {[key in Options]: number | boolean}
 }>()
 
@@ -37,9 +35,6 @@ onBeforeUnmount(() =>{
     window.clearInterval(timer);
 })
 
-const showAnswer = computed(() => {
-  return props.answer && props.options.showAnswer;
-})
 
 function wiggle() {
   doesWiggle.value = true;
@@ -50,25 +45,6 @@ function wiggle() {
 
 const colours = ['blue','black','red','orange','green','purple', 'brown']
 
-function valueToPoint(size: number,  index:number, total: number, letterPos: number, increment: number) {
-  
-  const x = 0
-  const y = -letterPos;
-
-  // find angle to centre of segment
-  const angle = ((Math.PI * 2) / total) * (index - increment/10)
-  const cos = Math.cos(angle)
-  const sin = Math.sin(angle)
-  var tx = x * cos - y * sin + size;
-  var ty = x * sin + y * cos + size;
-
-  ty += 5;
-
-  return {
-    x: tx,
-    y: ty
-  }
-}
 /**
  * find position of origin of image (svg letter, word or image)
  * 
@@ -131,7 +107,7 @@ function colour() {
 <template>
 
     <text 
-      :class="{ wiggle: doesWiggle, highlight: showAnswer }"
+      
       :font-size="props.size"
       :transform="transform(centrePoint)"
       :fill= "colour()"

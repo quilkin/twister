@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, type Ref, computed, onMounted, onBeforeMount, watch } from 'vue'
-import PolyGraphic from './components/PolyGraphic.vue';
+import LetterRing from './components/Ring.vue';
 import { randInteger, Options, imageTypes } from './util'
 import { words2, words3, words4, sums3} from './assets/words'
 import GameOptions from './components/GameOptions.vue'
@@ -8,14 +8,13 @@ import GameScore from './components/Timer.vue'
 import ModalAlert from './components/ModalAlert.vue';
 import ModalQuestion from './components/ModalQuestion.vue';
 import JSConfetti from 'js-confetti'
-import { is } from '@babel/types';
 
-let imageSize = 250
+let imageSize = 230
 
 if (window.innerWidth > 1000)
-  imageSize = 3500;
+  imageSize = 320;
   if (window.innerWidth < 400) // iphone se
-  imageSize = 200;
+  imageSize = 180;
 
 
 let wordArray = [''];
@@ -23,9 +22,7 @@ let symbolArray = [['']];
 let symbolArrayCopy = [['']];
 let success = false;
 
-let increments : number[] = [0,0,0,0];
-const currentMatch1 = ref(-1);
-const currentMatch2 = ref(-1);
+const increments = ref([0,0,0,0]);
 
 const score = ref(0);
 const gameStarted = ref(false);
@@ -82,7 +79,7 @@ async function setRingImages()
    
   
   let allWords;
-  increments  = [0,0,0,0];
+  increments.value  = [0,0,0,0];
 
   if (options.value.imageType === imageTypes.words) {
   
@@ -125,19 +122,52 @@ async function setRingImages()
 function showSuccess() {
   jsConfetti.addConfetti({  emojis: [ '😎', '😇', '😮', '🙂','😃']})    
   gameStarted.value = false;
-  // resultWords.value = `Success! ${cardCount.value} cards matched with a score of ${score.value}`;
-  // isResultVisible.value = true;
-  // cardCount.value = 0;
 
 }
 
+function normaliseIncrements(ring: number) {
+
+  increments.value[ring] = Math.round(increments.value[ring] );
+
+  let itemsPerRing = options.value.numberOfWords;
+  // ensure multiple rotations are taken care of
+  if (increments.value[ring] >= itemsPerRing)
+    increments.value[ring] -= itemsPerRing;
+  if (increments.value[ring] < 0)
+    increments.value[ring] += itemsPerRing;
+  console.log('ring: ' + ring + ' incs: ' + increments.value[ring])
+
+
+}
+function twistRing(ring: number, backwards : boolean, bounce: boolean) {
+ // animate the angle of letter placement in 10 mini-increments, to bring next letter into line
+ let count = bounce? 11:10;
+ let timer = window.setInterval(()=> {
+    increments.value[ring] += backwards? -0.1 : 0.1;
+    if (--count < 0) {
+      window.clearTimeout(timer);
+      if (bounce) {
+        window.setTimeout(()=> {
+          // bounce back one tenth
+          increments.value[ring] += backwards? 0.1 : -0.1;
+          normaliseIncrements(ring);
+        },50)
+      }
+      else {
+        normaliseIncrements(ring);
+
+      }
+    }
+  },50)
+}
 
 function twist(ring: number, incs: number) {
   if (incs == 0)
     return;
-  incs /= 10;
+  if (ring >= options.value.numberOfRings)
+    return;
   let timer = window.setInterval(()=> {
-    ringRef.value[ring].twist(true,false);
+    twistRing(ring,false,false);
     if (incs === undefined ||--incs <= 0) {
       window.clearTimeout(timer);
     }
@@ -145,14 +175,7 @@ function twist(ring: number, incs: number) {
 }
 
 let incs = [0];
-function calcIncrementsReqd(ring : number) {
-//console.log(ring +': '+ incs[ring]);
-      if (incs[ring] !== 0) 
-      // e.g. if incs at 90, and there are 12 words in the game, need to do (120-90) twists to bring to zero
-        incs[ring] = options.value.numberOfWords * 10 - incs[ring];
-     // console.log(ring + 'a: '+ incs[ring]);
 
-}
 function showResult(giveup: boolean)
 {
   isQuestionVisible.value = false;
@@ -161,53 +184,64 @@ function showResult(giveup: boolean)
       isAnswerInProgress.value = true;
 
     // animate to bring all rings back to zero increments
-      incs = increments.slice();
-      console.log(incs);
+      incs = increments.value.slice();
+      console.log('incs now: ' +incs);
       for (let r=0; r < 4; r++) {
-        calcIncrementsReqd(r);
+        if (incs[r] !== 0) 
+      // e.g. if incs at 9, and there are 12 words in the game, need to do (12-9) twists to bring to zero
+          incs[r] = options.value.numberOfWords  - incs[r];
       }
-      console.log(incs);
-      // console.log('3:'+ incs[3]);
-      // if (incs[3] !== 0) 
-      // // e.g. if incs at 90, and there are 12 words in the game, need to do (120-90) twists to bring to zero
-      //   incs[3] = options.value.numberOfWords * 10 - incs[3];
-      // console.log('3a:'+ incs[3]);
+      console.log('incs reqd: ' +incs);
+      doTwists(()=> {
+        gameStarted.value = false;
+        isAnswerInProgress.value = false;
+      });
+    }
+  }
+
+  function setUpIncrements() {
+
+    for (let r=0; r < options.value.numberOfRings; r++) {
+           incs[r] = randInteger(symbolArray.length);
+      }
+    console.log('start incs: ' + incs)
+    doTwists(()=> {
+        console.log('ready')
+
+      });
+
+  }
+
+  function doTwists(andThen: { (): void; (): void; })
+  {
+    console.log(incs);
+
       let twistTime = incs[3] * 70 + 10;
       twist(3,incs[3]);
       // twist each ring when ready
       window.setTimeout(()=> {
-         //calcIncrementsReqd(2);
-          // console.log('2:'+ incs[2]);
-          // if (incs[2] !== 0) incs[2] = options.value.numberOfWords * 10 - incs[2];
-          // console.log('2a:'+ incs[2]);
+
           let twistTime = incs[2] * 70 + 10;
           twist(2,incs[2]);
           window.setTimeout(()=> {
-           // calcIncrementsReqd(1);
-              // console.log('1:'+ incs[1]);
-              // if (incs[1] !== 0) incs[1] = options.value.numberOfWords * 10 - incs[1];
-              // console.log('1a:'+ incs[1]);
+
               let twistTime = incs[1] * 70 + 10;
               twist(1,incs[1]);
               window.setTimeout(()=> {
-                //  calcIncrementsReqd(0);
-                  // console.log('0:'+ incs[0]);
-                  // if (incs[0] !== 0) incs[0] = options.value.numberOfWords * 10 - incs[0];
-                  // console.log('0a:'+ incs[0]);
+
                   let twistTime = incs[0] * 70 + 10;
                   twist(0,incs[0]);
                   window.setTimeout(()=> {
                       // all twists done
                     // todo: highlight answer in some way
-                    gameStarted.value = false;
-                    isAnswerInProgress.value = false;
+                    andThen();
+
                   },twistTime)
               },twistTime)
           },twistTime)
       },twistTime)
-    }
-  }
 
+  }
 
 function checkAnswer() {
   if (success)
@@ -224,14 +258,14 @@ function checkAnswer() {
 function startGame() {
   
   centreEmoji.value = '❓'
+  
   gameStarted.value = true;
-  if (ringRef.value) 
-    for (let r=0; r<4; r++)
-       if (ringRef.value[r])
-          ringRef.value[r].newIncrements();
-  if (!firstTime)
-    setRingImages();
-  firstTime = false;
+
+  setRingImages();
+  setUpIncrements();
+  // if (!firstTime)
+  //   setRingImages();
+  // firstTime = false;
  
 }
 function clickImage(ring : number) {
@@ -268,18 +302,15 @@ function checkIncrements(ring: number, incs: number) {
     checkIncrementsNums(ring, incs);
     return;
   }
-  increments[ring] = incs;
+  increments.value[ring] = incs;
   success = true;
   let rings = options.value.numberOfRings;
   for (let r=0; r< rings-1; r++) {
-    if (increments[r] != increments[r+1])
+    if (increments.value[r] != increments.value[r+1])
     success = false;
   }
 
-  // if (success) {
-  //   console.log('********** done it! *********');
 
-  // }
 }
 
 
@@ -313,23 +344,10 @@ function checkIncrementsNums(ring: number, incs: number) {
 
     }
   }
-  // if (success) {
-  //   console.log('********** done it! *********');
-  // }
 }
 
 
-function setIncrements(ring: number) {
 
-    if (isAnswerInProgress.value) {
-      return increments[ring];
-    }
-    let startInc = randInteger(symbolArray.length)*10;
-    increments[ring] = startInc;
-    console.log('start incs: ' + increments)
-
-    return startInc;
-  }
 
 </script>
 
@@ -343,7 +361,7 @@ function setIncrements(ring: number) {
             <v-col class="mb-0">
               <div id="topCard">
                 <svg  :width="imageSize*2" :height="imageSize*2">
-                  <PolyGraphic  v-for="n in numRings()"
+                  <LetterRing  v-for="n in numRings()"
                     ref="ringRef"
                     :index = "changedOptions"
                     :started = "gameStarted"
@@ -353,22 +371,22 @@ function setIncrements(ring: number) {
                     :centre="imageSize"
                     :radius="radius(n-1)"
                     :thickness="thickness(n-1)"
-                    :increments="setIncrements(n-1)"
-                    :answer="currentMatch1"
-                      @click-image="clickImage(n-1)"
-                      @send-increment="checkIncrements"
-                    ></PolyGraphic>
-                    <circle id="answer" :cx="imageSize" :cy="imageSize" :r="imageSize/4" 
-                      @dblclick.prevent
+                    :increments="increments[n-1]"
+                    @twist="twistRing"
+                    @click-image="clickImage(n-1)"
+                    @send-increment="checkIncrements"
+                  ></LetterRing>
+                  <circle id="answer" :cx="imageSize" :cy="imageSize" :r="imageSize/4" 
+                    @dblclick.prevent
+                    @click="checkAnswer()"
+                    stroke-width="1"  stroke="green"  fill="green"/>
+                    <text id="emoji"
+                      :font-size="imageSize/8"
                       @click="checkAnswer()"
-                      stroke-width="1"  stroke="green"  fill="green"/>
-                      <text id="emoji"
-                        :font-size="imageSize/8"
-                        @click="checkAnswer()"
-                        :x="imageSize-imageSize/13"
-                        :y="imageSize+imageSize/24">
-                      {{ centreEmoji }}
-                    </text>
+                      :x="imageSize-imageSize/13"
+                      :y="imageSize+imageSize/24">
+                    {{ centreEmoji }}
+                  </text>
                 </svg>
               </div>
             </v-col>

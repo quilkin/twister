@@ -28,24 +28,24 @@ export function randInteger(max: number, min: number = 0){
 //  * @param total : number of segments
 //  * @returns coords{x,y}
 //  */
-// export function valueToPoint(size: number,  index:number, total: number, letterPos: number) {
+export function valueToPoint(size: number,  index:number, total: number, letterPos: number, increment: number) {
   
-//     const x = 0
-//     const y = -letterPos;
+  const x = 0
+  const y = -letterPos;
 
-//     // find angle to centre of segment
-//     const angle = ((Math.PI * 2) / total) * (index - 0.2)
-//     const cos = Math.cos(angle)
-//     const sin = Math.sin(angle)
-//     var tx = x * cos - y * sin + size;
-//     var ty = x * sin + y * cos + size;
- 
-//     ty += 5;
- 
-//     return {
-//       x: tx,
-//       y: ty
-//     }
-//   }
+  // find angle to centre of segment
+  const angle = ((Math.PI * 2) / total) * (index - increment)
+  const cos = Math.cos(angle)
+  const sin = Math.sin(angle)
+  var tx = x * cos - y * sin + size;
+  var ty = x * sin + y * cos + size;
+
+  ty += 5;
+
+  return {
+    x: tx,
+    y: ty
+  }
+}
 
 
