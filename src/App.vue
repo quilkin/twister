@@ -20,7 +20,7 @@ if (window.innerWidth > 1000)
 let wordArray = [''];
 let symbolArray = [['']];
 let symbolArrayCopy = [['']];
-let success = false;
+//let success = false;
 
 const increments = ref([0,0,0,0]);
 
@@ -38,6 +38,8 @@ const centreEmoji = ref('😀');
 const ringRef = ref();
 
 let firstTime = true;
+let allWords: string | any[];
+
 onBeforeMount(() =>{
    
   const randSeed = randInteger(Date.now()/1000);
@@ -50,7 +52,6 @@ onBeforeMount(() =>{
     [Options.showAnswer] : false,
     [Options.imageType] : imageTypes.words
   }
-  //rings.value = [];
   setRingImages();
 
 
@@ -77,8 +78,6 @@ async function setRingImages()
   if (options.value.imageType === imageTypes.additions)
     options.value.numberOfRings = 3;
    
-  
-  let allWords;
   increments.value  = [0,0,0,0];
 
   if (options.value.imageType === imageTypes.words) {
@@ -89,6 +88,8 @@ async function setRingImages()
           allWords = words3;
     else
           allWords = words4;
+
+
   }
   else
     allWords = sums3;
@@ -135,12 +136,13 @@ function normaliseIncrements(ring: number) {
     increments.value[ring] -= itemsPerRing;
   if (increments.value[ring] < 0)
     increments.value[ring] += itemsPerRing;
-  console.log('ring: ' + ring + ' incs: ' + increments.value[ring])
+  //console.log('ring: ' + ring + ' incs: ' + increments.value[ring])
 
 
 }
 function twistRing(ring: number, backwards : boolean, bounce: boolean) {
  // animate the angle of letter placement in 10 mini-increments, to bring next letter into line
+ centreEmoji.value = '❓';
  let count = bounce? 11:10;
  let timer = window.setInterval(()=> {
     increments.value[ring] += backwards? -0.1 : 0.1;
@@ -155,13 +157,12 @@ function twistRing(ring: number, backwards : boolean, bounce: boolean) {
       }
       else {
         normaliseIncrements(ring);
-
       }
     }
   },50)
 }
 
-function twist(ring: number, incs: number) {
+function twist(speed: number,ring: number, incs: number) {
   if (incs == 0)
     return;
   if (ring >= options.value.numberOfRings)
@@ -171,7 +172,7 @@ function twist(ring: number, incs: number) {
     if (incs === undefined ||--incs <= 0) {
       window.clearTimeout(timer);
     }
-  },600);
+  },speed*10);
 }
 
 let incs = [0];
@@ -192,7 +193,7 @@ function showResult(giveup: boolean)
           incs[r] = options.value.numberOfWords  - incs[r];
       }
       console.log('incs reqd: ' +incs);
-      doTwists(()=> {
+      doTwists(70,()=> {
         gameStarted.value = false;
         isAnswerInProgress.value = false;
       });
@@ -205,35 +206,34 @@ function showResult(giveup: boolean)
            incs[r] = randInteger(symbolArray.length);
       }
     console.log('start incs: ' + incs)
-    doTwists(()=> {
+    doTwists(30,()=> {
         console.log('ready')
 
       });
 
   }
 
-  function doTwists(andThen: { (): void; (): void; })
+  function doTwists(speed: number, andThen: { (): void; (): void; })
   {
     console.log(incs);
 
-      let twistTime = incs[3] * 70 + 10;
-      twist(3,incs[3]);
+      let twistTime = incs[3] * speed;
+      twist(speed,3,incs[3]);
       // twist each ring when ready
       window.setTimeout(()=> {
 
-          let twistTime = incs[2] * 70 + 10;
-          twist(2,incs[2]);
+          let twistTime = incs[2] * speed;
+          twist(speed,2,incs[2]);
           window.setTimeout(()=> {
 
-              let twistTime = incs[1] * 70 + 10;
-              twist(1,incs[1]);
+              let twistTime = incs[1] * speed;
+              twist(speed,1,incs[1]);
               window.setTimeout(()=> {
 
-                  let twistTime = incs[0] * 70 + 10;
-                  twist(0,incs[0]);
+                  let twistTime = incs[0] * speed;
+                  twist(speed,0,incs[0]);
                   window.setTimeout(()=> {
                       // all twists done
-                    // todo: highlight answer in some way
                     andThen();
 
                   },twistTime)
@@ -243,7 +243,14 @@ function showResult(giveup: boolean)
 
   }
 
+  /**
+ * check to see if all (word) rings are aligned correctly
+ */
 function checkAnswer() {
+  let success = true;
+
+    success = checkIncrements();
+
   if (success)
   {
     centreEmoji.value = '😀'
@@ -258,17 +265,10 @@ function checkAnswer() {
 function startGame() {
   
   centreEmoji.value = '❓'
-  
   gameStarted.value = true;
-
   setRingImages();
   setUpIncrements();
-  // if (!firstTime)
-  //   setRingImages();
-  // firstTime = false;
  
-}
-function clickImage(ring : number) {
 }
 
 function numRings() {
@@ -287,70 +287,60 @@ function thickness(ring : number)
   return radiusPerRing() * 0.9;
 }
 
-/**
- * check to see if all (word) rings are aligned correctly
- * ** Note this assumes that there is only one correct answer -
- * **** chances of an incorrect ring postion giving 8 or more new allowed words is pretty small??
- * @param ring 
- * @param incs 
- */
-function checkIncrements(ring: number, incs: number) {
-  // if (isAnswerInProgress.value)
-  //   return;
-  centreEmoji.value = '❓'
-  if (options.value.imageType === imageTypes.additions) {
-    checkIncrementsNums(ring, incs);
-    return;
-  }
-  increments.value[ring] = incs;
-  success = true;
-  let rings = options.value.numberOfRings;
-  for (let r=0; r< rings-1; r++) {
-    if (increments.value[r] != increments.value[r+1])
-    success = false;
-  }
 
 
-}
 
+function checkIncrements() {
 
-function checkIncrementsNums(ring: number, incs: number) {
-  symbolArrayCopy[ring] = symbolArray[ring].slice();
-  // 'rotate' copy so that it represents what's shown
-  // console.log('before shift');
-  // for (let r=0; r < options.value.numberOfRings; r++)
-  //    console.log(symbolArrayCopy[r]);
-  while (incs > 0)
-  {
-    let last = symbolArrayCopy[ring].pop();
-    if (last)
-      symbolArrayCopy[ring].unshift(last);
-    incs -= 10;
-  }
-  // console.log('after shift');
-  // for (let r=0; r < options.value.numberOfRings; r++)
-  //    console.log(symbolArrayCopy[r]);
-  // now check to see if the sums work
-  success = true;
-  for (let n=0; n< options.value.numberOfWords; n++) {
+  for (let r=0; r < options.value.numberOfRings; r++) {
+    symbolArrayCopy[r] = symbolArray[r].slice();
+    // 'rotate' copy so that it represents what's shown
+    let incs = increments.value[r];
+    while (incs-- > 0)
     {
-      let num1 = Number(symbolArrayCopy[0][n]);
-      let num2 = Number(symbolArrayCopy[1][n]);
-      let num3 = Number(symbolArrayCopy[2][n]);
-      if (num1 + num2 !== num3) {
-        success = false;
-        break
-      }
-
+      let last = symbolArrayCopy[r].pop();
+      if (last)
+        symbolArrayCopy[r].unshift(last);
+    
     }
   }
+  let success = true;
+  if (options.value.imageType === imageTypes.additions) {
+    // check to see if the sums work
+
+    for (let n=0; n< options.value.numberOfWords; n++) {
+      {
+        let num1 = Number(symbolArrayCopy[0][n]);
+        let num2 = Number(symbolArrayCopy[1][n]);
+        let num3 = Number(symbolArrayCopy[2][n]);
+        if (num1 + num2 !== num3) {
+          success = false;
+          break
+        }
+      }
+    }
+
+  }
+  else if (options.value.imageType === imageTypes.words) {
+    // check to see if all words are in the list
+    for (let n=0; n< options.value.numberOfWords; n++) {
+      {
+        let word = '';
+        for (let r=0; r< options.value.numberOfRings; r++) {
+            word += symbolArrayCopy[r][n]
+        }
+        if (allWords.includes(word)===false)
+        {
+          success = false;
+          break
+        }
+      }
+    }
+
+  }
+  return success;
 }
-
-
-
-
 </script>
-
 
 <template>
   <v-app>
@@ -373,7 +363,6 @@ function checkIncrementsNums(ring: number, incs: number) {
                     :thickness="thickness(n-1)"
                     :increments="increments[n-1]"
                     @twist="twistRing"
-                    @click-image="clickImage(n-1)"
                     @send-increment="checkIncrements"
                   ></LetterRing>
                   <circle id="answer" :cx="imageSize" :cy="imageSize" :r="imageSize/4" 

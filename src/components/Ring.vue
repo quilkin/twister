@@ -4,7 +4,7 @@ import SegmentImage from './SegmentImage.vue'
 import MathSign from './mathSign.vue'
 import { Options, imageTypes } from '../util'
 
-const emit = defineEmits(['clickImage','twist']);
+const emit = defineEmits(['twist']);
 
 const props =defineProps<{
   ring: number,
