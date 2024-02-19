@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import {  valueToPoint} from '../util'
+import {  valueToPoint, Symbols} from '../util'
 
 const props = defineProps<{
   img: string,
@@ -33,6 +33,19 @@ const point = computed(() =>
   // adjust to center of letter
   p.x -= props.size/3;    // size being approx height of one char
   p.y += props.size/3;
+
+  // adjust to center of letter
+  if (props.img===Symbols.minus) {
+ 
+    p.y -= props.size/2;
+  }  
+  if (props.img===Symbols.times) {
+    //p.x += props.size/5; 
+    p.y -= props.size/5;
+  }  
+  // if (props.img==='+') {
+  //   p.y -= props.size/5;
+  // }  
 
   return p;
 })

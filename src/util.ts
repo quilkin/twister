@@ -13,7 +13,12 @@ export enum Options {
   wiggles = 'wiggles',
   imageType = 'imageType',
   showAnswer = 'showAnswer'
-
+}
+export enum Symbols {
+  plus = '+',
+  minus = '_', // to show better,  '-' is too small
+  times = 'x',
+  divide = '÷'
 }
 
 export function randInteger(max: number, min: number = 0){

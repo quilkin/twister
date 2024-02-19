@@ -51,7 +51,7 @@ function sets() {
             <input type="radio" id="two" :value="imageTypes.additions" v-model="options.imageType"  @change="emit('changeImages')"/>
             <label for="two">&nbsp;2+3=5</label>
             &nbsp;
-            <input disabled type="radio" id="three" :value="imageTypes.sums" v-model="options.imageType"  @change="emit('changeImages')"/>
+            <input  type="radio" id="three" :value="imageTypes.sums" v-model="options.imageType"  @change="emit('changeImages')"/>
             <label for="two">&nbsp;7?5=2</label> 
             <p></p>
 

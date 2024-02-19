@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, type Ref, computed, onMounted, onBeforeMount, watch } from 'vue'
 import LetterRing from './components/Ring.vue';
-import { randInteger, Options, imageTypes } from './util'
-import { words2, words3, words4, sums3} from './assets/words'
+import { randInteger, Options, imageTypes, Symbols } from './util'
+import { words2, words3, words4, sums3, sums4} from './assets/words'
 import GameOptions from './components/GameOptions.vue'
 import GameScore from './components/Timer.vue'
 import ModalAlert from './components/ModalAlert.vue';
@@ -20,6 +20,7 @@ if (window.innerWidth > 1000)
 let wordArray = [''];
 let symbolArray = [['']];
 let symbolArrayCopy = [['']];
+let mathsArray = [''];
 //let success = false;
 
 const increments = ref([0,0,0,0]);
@@ -75,12 +76,14 @@ onMounted(() =>{
 
 async function setRingImages()
 {
-  if (options.value.imageType === imageTypes.additions)
-    options.value.numberOfRings = 3;
-   
   increments.value  = [0,0,0,0];
 
-  if (options.value.imageType === imageTypes.words) {
+  if (options.value.imageType === imageTypes.additions) {
+    options.value.numberOfRings = 3;
+    allWords = sums3;
+  }
+
+  else if (options.value.imageType === imageTypes.words) {
   
     if (options.value.numberOfRings===2)
           allWords = words2;
@@ -88,11 +91,12 @@ async function setRingImages()
           allWords = words3;
     else
           allWords = words4;
-
-
   }
-  else
-    allWords = sums3;
+  else if (options.value.imageType === imageTypes.sums) {
+    options.value.numberOfRings = 3;
+    allWords = sums4;
+  }
+    
 
   // choose some at random from this list
   wordArray = [];
@@ -105,19 +109,18 @@ async function setRingImages()
   for (let w=0; w < wordArray.length; w++)
       wordArray[w] = wordArray[w].toLowerCase();
     
-  
-
   symbolArray=[];
   for (let word=0; word < options.value.numberOfWords; word++) {
     symbolArray[word] = Array.from(wordArray[word])
   }
   transpose(symbolArray);
 
-  if (options.value.imageType === imageTypes.additions) {
+  if (options.value.imageType !== imageTypes.words) {
     for (let r=0; r < options.value.numberOfRings; r++)
      symbolArrayCopy[r] = symbolArray[r].slice();
   }
   ++changedOptions.value;
+  mathsArray =  symbolArray[3];
 
 }
 function showSuccess() {
@@ -305,23 +308,25 @@ function checkIncrements() {
     }
   }
   let success = true;
-  if (options.value.imageType === imageTypes.additions) {
-    // check to see if the sums work
+  // if (options.value.imageType === imageTypes.additions) {
+  //   // check to see if the sums work
 
-    for (let n=0; n< options.value.numberOfWords; n++) {
-      {
-        let num1 = Number(symbolArrayCopy[0][n]);
-        let num2 = Number(symbolArrayCopy[1][n]);
-        let num3 = Number(symbolArrayCopy[2][n]);
-        if (num1 + num2 !== num3) {
-          success = false;
-          break
-        }
-      }
-    }
+  //   for (let n=0; n< options.value.numberOfWords; n++) {
+  //     {
+  //       let num1 = Number(symbolArrayCopy[0][n]);
+  //       let num2 = Number(symbolArrayCopy[1][n]);
+  //       let num3 = Number(symbolArrayCopy[2][n]);
+  //       let symbol = mathsArray[n];
+  //       if (num1 + num2 !== num3) {
+  //         success = false;
+  //         break
+  //       }
+  //     }
+  //   }
 
-  }
-  else if (options.value.imageType === imageTypes.words) {
+  // }
+
+  if (options.value.imageType === imageTypes.words) {
     // check to see if all words are in the list
     for (let n=0; n< options.value.numberOfWords; n++) {
       {
@@ -338,6 +343,27 @@ function checkIncrements() {
     }
 
   }
+  else {
+    // check to see if the sums work
+
+    for (let n=0; n< options.value.numberOfWords; n++) {
+      {
+        let num1 = Number(symbolArrayCopy[0][n]);
+        let num2 = Number(symbolArrayCopy[1][n]);
+        let num3 = Number(symbolArrayCopy[2][n]);
+        let symbol = mathsArray[n];
+        switch (symbol) {
+          case Symbols.plus:  if (num1 + num2 !== num3)  success = false;  break;
+          case Symbols.minus:  if (num1 - num2 !== num3) success = false;  break;
+          case Symbols.times:  if (num1 * num2 !== num3) success = false;  break;
+          case Symbols.divide:  if (num1 / num2 !== num3) success = false;  break;
+        }
+  
+      }
+    }
+
+  }
+  
   return success;
 }
 </script>
@@ -358,6 +384,7 @@ function checkIncrements() {
                     :options = "options"
                     :ring = "n-1"
                     :letters="symbolArray[n-1]"
+                    :maths="mathsArray"
                     :centre="imageSize"
                     :radius="radius(n-1)"
                     :thickness="thickness(n-1)"

@@ -10,6 +10,7 @@ const props =defineProps<{
   ring: number,
   started: boolean,
   letters: string[],
+  maths: string[],
   centre: number,
   radius : number,
   thickness : number,
@@ -76,25 +77,25 @@ function clickCircle(backwards : boolean)
         @click-image="clickCircle(false)"
       >
       </segment-image>
-      <math-sign v-if="props.options.imageType === imageTypes.additions && props.ring==0"
-        v-for="(image, index) in letters"
+      <math-sign v-if="props.options.imageType !== imageTypes.words && props.ring==0"
+        v-for="(image, index) in maths"
           :centre = "props.centre"
           :size = "size()*0.7"
           :radius = "letterPos()-props.thickness/2"
-          img="+"
+          :img="image"
           :index="index"
-          :increment="props.increments"
+          :increment="0"
           :segments="letters.length"
         >
       </math-sign>
-      <math-sign v-if="props.options.imageType === imageTypes.additions && props.ring==1"
+      <math-sign v-if="props.options.imageType !== imageTypes.words && props.ring==1"
         v-for="(image, index) in letters"
           :centre = "props.centre"
           :size = "size()*0.7"
           :radius = "letterPos()-props.thickness/2"
           img="="
           :index="index"
-          :increment="props.increments"
+          :increment="0"
           :segments="letters.length"
         >
       </math-sign>
