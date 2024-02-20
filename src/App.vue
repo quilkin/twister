@@ -2,7 +2,7 @@
 import { ref, type Ref, computed, onMounted, onBeforeMount, watch } from 'vue'
 import LetterRing from './components/Ring.vue';
 import { randInteger, Options, imageTypes, Symbols } from './util'
-import { words2, words3, words4, sums3, sums4} from './assets/words'
+import { words2, words3, words4, sumsPlus, sumsVarious} from './assets/words'
 import GameOptions from './components/GameOptions.vue'
 import GameScore from './components/Timer.vue'
 import ModalAlert from './components/ModalAlert.vue';
@@ -80,7 +80,11 @@ async function setRingImages()
 
   if (options.value.imageType === imageTypes.additions) {
     options.value.numberOfRings = 3;
-    allWords = sums3;
+    allWords = sumsPlus;
+  }
+  else if (options.value.imageType === imageTypes.sums) {
+    options.value.numberOfRings = 3;
+    allWords = sumsVarious;
   }
 
   else if (options.value.imageType === imageTypes.words) {
@@ -92,10 +96,7 @@ async function setRingImages()
     else
           allWords = words4;
   }
-  else if (options.value.imageType === imageTypes.sums) {
-    options.value.numberOfRings = 3;
-    allWords = sums4;
-  }
+
     
 
   // choose some at random from this list
@@ -408,7 +409,7 @@ function checkIncrements() {
             </v-col>
           </v-row>
             <div v-if="gameStarted">
-              <v-btn @click="isQuestionVisible=true">Show Answer?</v-btn>
+              <v-btn color="blue" variant="outlined" @click="isQuestionVisible=true">Show Answer?</v-btn>
             </div>
             <game-options v-else
                 v-model = "options"
